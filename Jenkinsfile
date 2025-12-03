@@ -56,27 +56,19 @@ pipeline {
 
 stage('Deploy') {
     steps {
-        sh '''
-            set -e
-            . ${VENV_DIR}/bin/activate
+        script {
+            def imageName = "flash-ci-cd:${env.BUILD_NUMBER}"
 
-            # Kill any old process on port 5000
-            if lsof -i:5000 -t >/dev/null 2>&1; then
-              echo "Killing existing process on port 5000"
-              kill -9 $(lsof -i:5000 -t) || true
-            fi
+            echo "Building Docker image ${imageName}"
+            sh "docker build -t ${imageName} ."
 
-            echo "Starting Flask app with python app.py"
-            nohup python app.py >/tmp/flask_jenkins.log 2>&1 &
+            echo "Stopping old container if it exists"
+            sh "docker stop flash-ci-cd || true"
+            sh "docker rm flash-ci-cd || true"
 
-            sleep 5
-            echo "Checking if port 5000 is listening..."
-            if ! lsof -i:5000 -t >/dev/null 2>&1; then
-              echo "Flask did not start, showing log:"
-              cat /tmp/flask_jenkins.log || true
-              exit 1
-            fi
-        '''
+            echo "Running new container"
+            sh "docker run -d -p 5000:5000 --name flash-ci-cd ${imageName}"
+        }
     }
 }
 
