@@ -69,7 +69,7 @@ stage('Deploy') {
             echo "Starting Flask app with python app.py"
             nohup python app.py >/tmp/flask_jenkins.log 2>&1 &
 
-            sleep 3
+            sleep 5
             echo "Checking if port 5000 is listening..."
             if ! lsof -i:5000 -t >/dev/null 2>&1; then
               echo "Flask did not start, showing log:"
@@ -79,6 +79,7 @@ stage('Deploy') {
         '''
     }
 }
+
 
 
     }
