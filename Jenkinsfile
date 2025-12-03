@@ -54,25 +54,32 @@ pipeline {
     }
 }
 
-       stage('Deploy') {
+stage('Deploy') {
     steps {
         sh '''
             set -e
             . ${VENV_DIR}/bin/activate
-            export FLASK_APP=app.py
-            export FLASK_ENV=production
-            export FLASK_RUN_HOST=0.0.0.0
-            export FLASK_RUN_PORT=5000
-            # Kill any previous Flask run on this port
+
+            # Kill any old process on port 5000
             if lsof -i:5000 -t >/dev/null 2>&1; then
+              echo "Killing existing process on port 5000"
               kill -9 $(lsof -i:5000 -t) || true
             fi
-            # Run Flask in background
-            nohup flask run >/tmp/flask.log 2>&1 &
-            echo "Flask app started on port 5000"
+
+            echo "Starting Flask app with python app.py"
+            nohup python app.py >/tmp/flask_jenkins.log 2>&1 &
+
+            sleep 3
+            echo "Checking if port 5000 is listening..."
+            if ! lsof -i:5000 -t >/dev/null 2>&1; then
+              echo "Flask did not start, showing log:"
+              cat /tmp/flask_jenkins.log || true
+              exit 1
+            fi
         '''
     }
 }
+
 
     }
 
