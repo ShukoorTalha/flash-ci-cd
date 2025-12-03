@@ -30,20 +30,29 @@ pipeline {
             }
         }
 
-        stage('Tests') {
-            steps {
-                sh '''
-                    set -e
-                    . ${VENV_DIR}/bin/activate
-                    pip install pytest >/dev/null 2>&1 || true
-                    if [ -d tests ]; then
-                        pytest
-                    else
-                        echo "No tests/ directory found, skipping pytest."
-                    fi
-                '''
-            }
-        }
+      stage('Tests') {
+    steps {
+        sh '''
+            set -e
+            . ${VENV_DIR}/bin/activate
+
+            pip install pytest
+
+            if [ -d tests ]; then
+              # Run pytest but treat exit code 5 (no tests collected) as success
+              pytest || ec=$?
+              if [ "${ec:-0}" -eq 5 ]; then
+                echo "pytest exited with code 5 (no tests collected) – treating as success."
+              elif [ "${ec:-0}" -ne 0 ]; then
+                echo "pytest failed with exit code ${ec}"
+                exit ${ec}
+              fi
+            else
+              echo "No tests/ directory found, skipping pytest."
+            fi
+        '''
+    }
+}
 
        stage('Deploy') {
     steps {
