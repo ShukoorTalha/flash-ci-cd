@@ -45,11 +45,26 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                echo 'Deploy step placeholder (e.g., run app, build Docker image, or kubectl apply).'
-            }
-        }
+       stage('Deploy') {
+    steps {
+        sh '''
+            set -e
+            . ${VENV_DIR}/bin/activate
+            export FLASK_APP=app.py
+            export FLASK_ENV=production
+            export FLASK_RUN_HOST=0.0.0.0
+            export FLASK_RUN_PORT=5000
+            # Kill any previous Flask run on this port
+            if lsof -i:5000 -t >/dev/null 2>&1; then
+              kill -9 $(lsof -i:5000 -t) || true
+            fi
+            # Run Flask in background
+            nohup flask run >/tmp/flask.log 2>&1 &
+            echo "Flask app started on port 5000"
+        '''
+    }
+}
+
     }
 
     post {
